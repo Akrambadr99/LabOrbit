@@ -16,3 +16,6 @@ test('retains keyboard-visible product navigation',async({page})=>{await page.go
 test('Sample lineage deep workflow',async({page})=>{await page.goto('/samples/SMP-2048/lineage');await expect(page.getByRole('heading',{name:'Sample lineage and custody graph',exact:true})).toBeVisible();await expect(page.getByText('Sample SMP-2048',{exact:false}).first()).toBeVisible()});
 test('Sample lineage evidence 1',async({page})=>{await page.goto('/samples/SMP-2048/lineage');await expect(page.getByText('Aliquot A-03',{exact:false}).first()).toBeVisible()});
 test('Sample lineage evidence 2',async({page})=>{await page.goto('/samples/SMP-2048/lineage');await expect(page.getByText('Custody verified',{exact:false}).first()).toBeVisible()});
+
+
+test('Custody recovery restores and recovers domain state',async({page})=>{await page.goto('/samples/SMP-2048/custody/RECEIPT/recovery?asOf=2026-09-22&focus=ALQ-A03');await expect(page.getByRole('heading',{name:"Sample custody recovery",exact:true})).toBeVisible();await page.getByLabel('Authority').selectOption("result authorizer");await page.getByRole('button',{name:'Run domain bulk action'}).click();await expect(page.getByRole('status')).toContainText('1 succeeded; 1 require recovery');await expect(page.getByRole('button',{name:'Retry failed records'})).toBeVisible()});
