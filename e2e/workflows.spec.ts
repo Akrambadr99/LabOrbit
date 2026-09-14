@@ -22,3 +22,6 @@ test('Custody recovery restores and recovers domain state',async({page})=>{await
 
 
 test('Freezer moves restores a feasible decision',async({page})=>{await page.goto('/samples/SMP-2048/storage/FRZ-02/move?aliquots=14');await expect(page.getByRole('heading',{name:"Freezer move capacity optimizer",exact:true})).toBeVisible();await expect(page.getByRole('region',{name:'Scenario result'})).toContainText(/Feasible|Blocked/);await expect(page.getByText("capacity",{exact:false}).first()).toBeVisible()});
+
+
+test('premium shell is keyboard and mobile ready',async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto('/');await expect(page.getByRole('banner')).toBeVisible();await expect(page.getByRole('navigation',{name:'Product navigation'})).toBeVisible();await page.keyboard.press('Tab');await expect(page.getByRole('link',{name:'Skip to main content'})).toBeFocused();await page.getByRole('link',{name:'Skip to main content'}).press('Enter');await expect(page.locator('#main-content')).toBeFocused()});
