@@ -1,0 +1,2 @@
+export interface LineageEdge{parent:string;child:string}
+export function sampleAncestors(edges:readonly LineageEdge[],id:string){const found=new Set<string>(),visit=(child:string,stack:Set<string>)=>{if(stack.has(child))throw new Error('Sample lineage contains a cycle.');for(const edge of edges.filter(item=>item.child===child)){found.add(edge.parent);visit(edge.parent,new Set([...stack,child]))}};visit(id,new Set());return[...found]}
