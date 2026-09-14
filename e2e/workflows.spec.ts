@@ -19,3 +19,6 @@ test('Sample lineage evidence 2',async({page})=>{await page.goto('/samples/SMP-2
 
 
 test('Custody recovery restores and recovers domain state',async({page})=>{await page.goto('/samples/SMP-2048/custody/RECEIPT/recovery?asOf=2026-09-22&focus=ALQ-A03');await expect(page.getByRole('heading',{name:"Sample custody recovery",exact:true})).toBeVisible();await page.getByLabel('Authority').selectOption("result authorizer");await page.getByRole('button',{name:'Run domain bulk action'}).click();await expect(page.getByRole('status')).toContainText('1 succeeded; 1 require recovery');await expect(page.getByRole('button',{name:'Retry failed records'})).toBeVisible()});
+
+
+test('Freezer moves restores a feasible decision',async({page})=>{await page.goto('/samples/SMP-2048/storage/FRZ-02/move?aliquots=14');await expect(page.getByRole('heading',{name:"Freezer move capacity optimizer",exact:true})).toBeVisible();await expect(page.getByRole('region',{name:'Scenario result'})).toContainText(/Feasible|Blocked/);await expect(page.getByText("capacity",{exact:false}).first()).toBeVisible()});
