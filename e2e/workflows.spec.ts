@@ -1,0 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+import{expect,test}from'@playwright/test';
+test.beforeEach(async({page})=>{await page.addInitScript(()=>localStorage.clear())});
+test('opens the command center',async({page})=>{await page.goto('/');await expect(page.getByRole('heading',{name:"LabOrbit command center"})).toBeVisible()});
+test('navigates to the connected operations workspace',async({page})=>{await page.goto('/');await page.getByRole('link',{name:'Operations'}).click();await expect(page.getByText(/LIVE WORKSPACE/)).toBeVisible()});
+test('renders derived analytics',async({page})=>{await page.goto('/analytics');await expect(page.getByRole('heading',{name:'Operational analytics'})).toBeVisible()});
+test("Sample accession capacity route is operational",async({page})=>{await page.goto('/sample-accession');await expect(page.getByRole('heading',{name:"Sample accession capacity"})).toBeVisible();await expect(page.getByText(/revision 1/).first()).toBeVisible()})
+test("Chain of custody sequence route is operational",async({page})=>{await page.goto('/chain-of-custody');await expect(page.getByRole('heading',{name:"Chain of custody sequence"})).toBeVisible();await expect(page.getByText(/revision 1/).first()).toBeVisible()})
+test("Instrument calibration validity route is operational",async({page})=>{await page.goto('/instrument-calibration');await expect(page.getByRole('heading',{name:"Instrument calibration validity"})).toBeVisible();await expect(page.getByText(/revision 1/).first()).toBeVisible()})
+test("Analytical method version route is operational",async({page})=>{await page.goto('/method-version');await expect(page.getByRole('heading',{name:"Analytical method version"})).toBeVisible();await expect(page.getByText(/revision 1/).first()).toBeVisible()})
+test("Reagent reserve route is operational",async({page})=>{await page.goto('/reagent-stock');await expect(page.getByRole('heading',{name:"Reagent reserve"})).toBeVisible();await expect(page.getByText(/revision 1/).first()).toBeVisible()})
+test("Quality control limits route is operational",async({page})=>{await page.goto('/quality-control');await expect(page.getByRole('heading',{name:"Quality control limits"})).toBeVisible();await expect(page.getByText(/revision 1/).first()).toBeVisible()})
+test("Result reviewer qualification route is operational",async({page})=>{await page.goto('/result-review');await expect(page.getByRole('heading',{name:"Result reviewer qualification"})).toBeVisible();await expect(page.getByText(/revision 1/).first()).toBeVisible()})
+test("Sample stability window route is operational",async({page})=>{await page.goto('/stability-window');await expect(page.getByRole('heading',{name:"Sample stability window"})).toBeVisible();await expect(page.getByText(/revision 1/).first()).toBeVisible()})
+test('retains keyboard-visible product navigation',async({page})=>{await page.goto('/');await page.keyboard.press('Tab');await expect(page.locator(':focus')).toBeVisible()});
