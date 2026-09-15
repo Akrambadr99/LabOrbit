@@ -1,0 +1,5 @@
+export interface OperationalNode{id:string;label:string;capacity:number;demand:number;dependsOn:string[];effectiveFrom:string;effectiveTo:string;version:number}
+export const operationalNodes:OperationalNode[]=[{"id":"LO-910","label":"BX-204 handoff","capacity":10,"demand":6,"dependsOn":[],"effectiveFrom":"2026-09-01","effectiveTo":"2026-12-31","version":2},{"id":"LO-917","label":"Panel C rerun","capacity":8,"demand":9,"dependsOn":["LO-910"],"effectiveFrom":"2026-09-01","effectiveTo":"2026-09-20","version":3},{"id":"LO-923","label":"Aliquot witness","capacity":6,"demand":11,"dependsOn":["LO-917"],"effectiveFrom":"2026-09-18","effectiveTo":"2026-12-31","version":4},{"id":"LO-929","label":"Freezer move batch","capacity":9,"demand":5,"dependsOn":["LO-910"],"effectiveFrom":"2026-09-01","effectiveTo":"2026-12-31","version":5}];
+export const scenarioModes=["Integrity protected","Balanced throughput","Priority assay"] as const;
+export const metricLabels=["Viable samples","Instrument hours","Custody gaps"] as const;
+export const domainCoefficient=3.4;export const secondaryWeight=15;export const riskWeight=8;
