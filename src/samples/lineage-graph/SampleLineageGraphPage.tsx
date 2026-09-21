@@ -1,1 +1,46 @@
-import{useState}from'react';import{useParams}from'react-router-dom';export function SampleLineageGraphPage(){const params=useParams();const[mode]=useState('Current projection');return<main className="suite-page"><header className="suite-title"><div><small>APPEND-ONLY LINEAGE DAG WITH CUSTODY AND QC RELEASE GATES</small><h1>Sample lineage and custody graph</h1><p>Append-only lineage DAG with custody and QC release gates. Route context: {Object.values(params).join(' · ')||'current workspace'}.</p></div></header><section aria-label="Sample lineage"><h2>Sample SMP-2048</h2><p>SMP-2048 → Aliquot A-03 → Assay batch B-91</p><strong>Custody verified</strong></section><aside className="suite-card"><h2>Operational decision</h2><p>{mode}</p><p>Every derived result remains pinned to effective data and audit evidence.</p></aside></main>}
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { ancestorIds, custodyEvents, custodyFinding, releaseFindings, sampleNodes } from './custody'
+import type { CustodyEvent, SampleNode } from './custody'
+export function SampleLineageGraphPage() {
+  const { sampleId } = useParams()
+  const [nodes, setNodes] = useState<readonly SampleNode[]>(sampleNodes)
+  const [history, setHistory] = useState<readonly CustodyEvent[]>(custodyEvents)
+  const [selectedId, setSelectedId] = useState('B-91')
+  const [witness, setWitness] = useState('')
+  const [notice, setNotice] = useState('')
+  const findings = releaseFindings(selectedId, nodes, history)
+  const proposed: CustodyEvent = { id: 'CE-' + String(history.length + 1), sampleId: selectedId,
+    from: history.filter(item => item.sampleId === selectedId).at(-1)?.to ?? 'Bench-4',
+    to: 'Assay', at: '2026-09-14T11:00', witness }
+  function recordTransfer() {
+    const finding = custodyFinding(proposed, history)
+    if (finding) { setNotice(finding); return }
+    setHistory(current => [...current, proposed])
+    setNotice(`${selectedId} custody transfer recorded.`)
+  }
+  return <div className="suite-page">
+    <header className="suite-title"><div><small>SAMPLES / APPEND-ONLY EVIDENCE</small>
+      <h1>Sample lineage and custody graph</h1>
+      <p>Sample {sampleId ?? 'SMP-2048'} → Aliquot A-03 → Assay batch B-91</p>
+    </div></header>
+    <section className="suite-card" aria-label="Sample lineage">
+      <h2>Lineage</h2>
+      <label>Review node <select value={selectedId} onChange={event => { setSelectedId(event.target.value); }}>
+        {nodes.map(node => <option key={node.id} value={node.id}>{node.id} · {node.type}</option>)}</select></label>
+      <p>Ancestors: {ancestorIds(selectedId, nodes).join(' → ') || 'original sample'}</p>
+      <ul>{nodes.map(node => <li key={node.id}>{node.id} · QC {node.qc}</li>)}</ul>
+    </section>
+    <section className="suite-card" aria-label="Custody and quality">
+      <h2>Custody verified for recorded transfers</h2>
+      <ol>{history.map(event => <li key={event.id}>{event.sampleId}: {event.from} → {event.to} · {event.witness}</li>)}</ol>
+      <label>Receiving witness <input value={witness} onChange={event => { setWitness(event.target.value); }} /></label>
+      <button onClick={recordTransfer}>Record transfer to Assay</button>
+      <button onClick={() => { setNodes(current => current.map(node => node.id === selectedId ? { ...node, qc: 'pass' } : node)); }}
+        disabled={nodes.find(node => node.id === selectedId)?.qc === 'pass'}>Record QC pass</button>
+      <h3>Release findings</h3>
+      {findings.length ? <ul>{findings.map(item => <li key={item}>{item}</li>)}</ul> : <p>Release gates pass.</p>}
+      <p role="status">{notice}</p>
+    </section>
+  </div>
+}
