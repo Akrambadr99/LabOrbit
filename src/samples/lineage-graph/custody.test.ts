@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ancestorIds, custodyEvents, custodyFinding, releaseFindings, sampleNodes } from './custody'
+import { ancestorIds, custodyEvents, custodyFinding, custodySequence, releaseFindings, sampleNodes } from './custody'
 describe('sample lineage and custody', () => {
   it('traverses ancestors to the original sample', () => {
     expect(ancestorIds('B-91', sampleNodes)).toEqual(['A-03', 'SMP-2048'])
@@ -18,4 +18,16 @@ describe('sample lineage and custody', () => {
     const history = [...custodyEvents, { id: 'CE-3', sampleId: 'B-91', from: 'Bench-4', to: 'Assay', at: '2026-09-14T11:00', witness: 'K. Lin' }]
     expect(releaseFindings('B-91', passed, history)).toEqual([])
   })
+})
+describe('chain-of-custody sequencing compatibility', () => {
+  it('selects the first incomplete step', () => expect(custodySequence([
+    { id: 'a', order: 1, complete: true }, { id: 'b', order: 2, complete: false },
+  ])?.id).toBe('b'))
+  it('skips blocked steps', () => expect(custodySequence([
+    { id: 'a', order: 1, complete: false, blocked: true }, { id: 'b', order: 2, complete: false },
+  ])?.id).toBe('b'))
+  it('returns undefined when complete', () => expect(custodySequence([{ id: 'a', order: 1, complete: true }])).toBeUndefined())
+  it('rejects duplicate order', () => expect(() => custodySequence([
+    { id: 'a', order: 1, complete: false }, { id: 'b', order: 1, complete: false },
+  ])).toThrow())
 })

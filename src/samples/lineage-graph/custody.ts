@@ -40,3 +40,11 @@ export function releaseFindings(id: string, nodes: readonly SampleNode[], histor
   }
   return findings
 }
+
+export interface OrderedStep { id: string; order: number; complete: boolean; blocked?: boolean }
+export function custodySequence(steps: readonly OrderedStep[]) {
+  const ordered = steps.toSorted((a, b) => a.order - b.order)
+  const duplicate = ordered.some((step, index) => index > 0 && step.order === ordered[index - 1]?.order)
+  if (duplicate) throw new Error('Chain of custody contains duplicate order.')
+  return ordered.find(step => !step.complete && !step.blocked)
+}
