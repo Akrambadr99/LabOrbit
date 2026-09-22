@@ -1,0 +1,18 @@
+import { expect, test } from '@playwright/test'
+
+test('custody and QC evidence govern freezer move and protect quality reversal', async ({ page }) => {
+  await page.goto('/samples/B-91/storage/FRZ-02/move?aliquots=4')
+  await page.getByLabel('Decision authority').selectOption('lab manager')
+  await expect(page.getByRole('button', { name: 'Authorize custody move' })).toBeDisabled()
+  await page.goto('/samples/SMP-2048/lineage')
+  await page.getByLabel('Receiving witness').fill('K. Lin')
+  await page.getByRole('button', { name: 'Record transfer to Assay' }).click()
+  await page.getByRole('button', { name: 'Record QC pass' }).click()
+  await page.goto('/samples/B-91/storage/FRZ-02/move?aliquots=4')
+  await page.getByLabel('Decision authority').selectOption('lab manager')
+  await page.getByRole('button', { name: 'Authorize custody move' }).click()
+  await expect(page.getByText('Move authorized')).toBeVisible()
+  await page.goto('/samples/SMP-2048/lineage')
+  await page.getByRole('button', { name: 'Reopen QC' }).click()
+  await expect(page.getByRole('status')).toContainText('Authorized storage move depends')
+})

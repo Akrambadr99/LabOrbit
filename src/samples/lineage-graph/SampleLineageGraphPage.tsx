@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ancestorIds, custodyEvents, custodyFinding, releaseFindings, sampleNodes } from './custody'
-import type { CustodyEvent, SampleNode } from './custody'
+import { ancestorIds, custodyFinding, releaseFindings } from './custody'
+import type { CustodyEvent } from './custody'
+import { passQuality, readSampleLedger, recordCustody, reopenQuality, saveSampleLedger } from './sampleLedger'
 export function SampleLineageGraphPage() {
   const { sampleId } = useParams()
-  const [nodes, setNodes] = useState<readonly SampleNode[]>(sampleNodes)
-  const [history, setHistory] = useState<readonly CustodyEvent[]>(custodyEvents)
+  const [ledger, setLedger] = useState(() => readSampleLedger(window.localStorage))
+  const nodes = ledger.nodes
+  const history = ledger.transfers
   const [selectedId, setSelectedId] = useState('B-91')
   const [witness, setWitness] = useState('')
   const [notice, setNotice] = useState('')
@@ -16,8 +18,16 @@ export function SampleLineageGraphPage() {
   function recordTransfer() {
     const finding = custodyFinding(proposed, history)
     if (finding) { setNotice(finding); return }
-    setHistory(current => [...current, proposed])
+    setLedger(saveSampleLedger(window.localStorage, recordCustody(ledger, proposed)))
     setNotice(`${selectedId} custody transfer recorded.`)
+  }
+  function recordQuality() {
+    setLedger(saveSampleLedger(window.localStorage, passQuality(ledger, selectedId)))
+    setNotice(`${selectedId} quality control passed.`)
+  }
+  function reopen() {
+    try { setLedger(saveSampleLedger(window.localStorage, reopenQuality(ledger, selectedId))); setNotice(`${selectedId} quality reopened.`) }
+    catch (error) { setNotice(error instanceof Error ? error.message : 'Reopening failed.') }
   }
   return <div className="suite-page">
     <header className="suite-title"><div><small>SAMPLES / APPEND-ONLY EVIDENCE</small>
@@ -33,11 +43,13 @@ export function SampleLineageGraphPage() {
     </section>
     <section className="suite-card" aria-label="Custody and quality">
       <h2>Custody verified for recorded transfers</h2>
+      <p>Lineage revision {ledger.revision} · Storage move {ledger.movedSampleId ?? 'pending'}</p>
       <ol>{history.map(event => <li key={event.id}>{event.sampleId}: {event.from} → {event.to} · {event.witness}</li>)}</ol>
       <label>Receiving witness <input value={witness} onChange={event => { setWitness(event.target.value); }} /></label>
       <button onClick={recordTransfer}>Record transfer to Assay</button>
-      <button onClick={() => { setNodes(current => current.map(node => node.id === selectedId ? { ...node, qc: 'pass' } : node)); }}
+      <button onClick={recordQuality}
         disabled={nodes.find(node => node.id === selectedId)?.qc === 'pass'}>Record QC pass</button>
+      {nodes.find(node => node.id === selectedId)?.qc === 'pass' && <button onClick={reopen}>Reopen QC</button>}
       <h3>Release findings</h3>
       {findings.length ? <ul>{findings.map(item => <li key={item}>{item}</li>)}</ul> : <p>Release gates pass.</p>}
       <p role="status">{notice}</p>
