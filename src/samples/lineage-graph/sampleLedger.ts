@@ -7,11 +7,12 @@ export interface SampleLedger {
   transfers: readonly CustodyEvent[]
   movedSampleId: string | null
   freezerReservation: { slotId: string; sampleId: string } | null
+  reservationOwner: string | null
   revision: number
-  history: readonly { revision: number; action: string; sampleId: string }[]
+  history: readonly { revision: number; action: string; sampleId: string; actor?: string }[]
 }
 const key = 'laborbit:sample:SMP-2048:lineage:v1'
-export const initialSampleLedger: SampleLedger = { nodes: sampleNodes, transfers: custodyEvents, movedSampleId: null, freezerReservation: null, revision: 0, history: [] }
+export const initialSampleLedger: SampleLedger = { nodes: sampleNodes, transfers: custodyEvents, movedSampleId: null, freezerReservation: null, reservationOwner: null, revision: 0, history: [] }
 export function readSampleLedger(storage: StoragePort): SampleLedger {
   const raw = storage.getItem(key)
   if (!raw) return initialSampleLedger
@@ -21,12 +22,12 @@ export function readSampleLedger(storage: StoragePort): SampleLedger {
     !('movedSampleId' in value) || (value.movedSampleId !== null && typeof value.movedSampleId !== 'string') ||
     !('revision' in value) || typeof value.revision !== 'number' ||
     !('history' in value) || !Array.isArray(value.history)) throw new Error('Invalid sample-lineage record.')
-  const record = value as SampleLedger
-  return { ...record, freezerReservation: record.freezerReservation ?? null }
+  const record = value as Omit<SampleLedger, 'reservationOwner'> & Partial<Pick<SampleLedger, 'reservationOwner'>>
+  return { ...record, freezerReservation: record.freezerReservation ?? null, reservationOwner: record.reservationOwner ?? (record.freezerReservation ? 'custody operator' : null) }
 }
-function withEvent(state: SampleLedger, action: string, sampleId: string): SampleLedger {
+function withEvent(state: SampleLedger, action: string, sampleId: string, actor?: string): SampleLedger {
   const revision = state.revision + 1
-  return { ...state, revision, history: [...state.history, { revision, action, sampleId }] }
+  return { ...state, revision, history: [...state.history, { revision, action, sampleId, ...(actor ? { actor } : {}) }] }
 }
 export function recordCustody(state: SampleLedger, transfer: CustodyEvent): SampleLedger {
   const finding = custodyFinding(transfer, state.transfers)
@@ -44,21 +45,28 @@ export function storageMoveBlockers(state: SampleLedger, id: string): string[] {
     'A freezer slot reservation is required for B-91.')
   return blockers
 }
-export function reserveFreezerSlot(state: SampleLedger, sampleId: string, slotId = 'FRZ-02'): SampleLedger {
+export function reserveFreezerSlot(state: SampleLedger, sampleId: string, slotId = 'FRZ-02', actor = 'custody operator'): SampleLedger {
+  if (actor !== 'custody operator') throw new Error('Only the custody operator may reserve freezer capacity.')
   if (state.freezerReservation?.sampleId === sampleId && state.freezerReservation.slotId === slotId) return state
   if (state.freezerReservation) throw new Error(`Freezer slot ${slotId} conflicts with ${state.freezerReservation.sampleId}.`)
-  return withEvent({ ...state, freezerReservation: { slotId, sampleId } }, 'freezer-slot-reserved', sampleId)
+  return withEvent({ ...state, freezerReservation: { slotId, sampleId }, reservationOwner: actor }, 'freezer-slot-reserved', sampleId, actor)
 }
 export function releaseFreezerSlot(state: SampleLedger): SampleLedger {
   if (!state.freezerReservation) throw new Error('No freezer reservation exists.')
   if (state.movedSampleId === state.freezerReservation.sampleId) throw new Error('Authorized storage move depends on this freezer reservation.')
-  return withEvent({ ...state, freezerReservation: null }, 'freezer-slot-released', state.freezerReservation.sampleId)
+  return withEvent({ ...state, freezerReservation: null, reservationOwner: null }, 'freezer-slot-released', state.freezerReservation.sampleId)
 }
-export function authorizeStorageMove(state: SampleLedger, id: string): SampleLedger {
+export function storageMovePolicy(state: SampleLedger, id: string, actor: string): { allowed: boolean; blockers: string[]; queue: 'custody' | 'independent-release' | 'complete' } {
   const blockers = storageMoveBlockers(state, id)
+  if (actor !== 'lab manager') blockers.push('Lab manager authorization is required for the freezer move.')
+  if (actor === state.reservationOwner) blockers.push('Reservation owner cannot independently authorize the move.')
+  if (state.movedSampleId) blockers.push('A storage move is already authorized.')
+  return { allowed: blockers.length === 0, blockers, queue: state.movedSampleId ? 'complete' : storageMoveBlockers(state, id).length ? 'custody' : 'independent-release' }
+}
+export function authorizeStorageMove(state: SampleLedger, id: string, actor: string): SampleLedger {
+  const blockers = storageMovePolicy(state, id, actor).blockers
   if (blockers.length) throw new Error(blockers.join(' '))
-  if (state.movedSampleId) throw new Error('A storage move is already authorized.')
-  return withEvent({ ...state, movedSampleId: id }, 'storage-move-authorized', id)
+  return withEvent({ ...state, movedSampleId: id }, 'storage-move-authorized', id, actor)
 }
 export function reopenQuality(state: SampleLedger, id: string): SampleLedger {
   if (state.movedSampleId === id) throw new Error('Authorized storage move depends on passed quality control.')

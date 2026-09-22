@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MemoryStorage } from '../../data/memory-storage'
-import { authorizeStorageMove, passQuality, readSampleLedger, recordCustody, releaseFreezerSlot, reopenQuality, reserveFreezerSlot, saveSampleLedger, storageMoveBlockers } from './sampleLedger'
+import { authorizeStorageMove, passQuality, readSampleLedger, recordCustody, releaseFreezerSlot, reopenQuality, reserveFreezerSlot, saveSampleLedger, storageMoveBlockers, storageMovePolicy } from './sampleLedger'
 describe('lineage evidence to storage move', () => {
   it('persists custody and QC evidence to unblock a dependent move', () => {
     const storage = new MemoryStorage()
@@ -11,10 +11,13 @@ describe('lineage evidence to storage move', () => {
   })
   it('protects evidence after a storage move depends on it', () => {
     const transferred = recordCustody(readSampleLedger(new MemoryStorage()), { id: 'CE-3', sampleId: 'B-91', from: 'Bench-4', to: 'Assay', at: '2026-09-14T11:00', witness: 'K. Lin' })
-    const moved = authorizeStorageMove(reserveFreezerSlot(passQuality(transferred, 'B-91'), 'B-91'), 'B-91')
+    const reserved = reserveFreezerSlot(passQuality(transferred, 'B-91'), 'B-91')
+    expect(storageMovePolicy(reserved, 'B-91', 'custody operator')).toMatchObject({ allowed: false, queue: 'independent-release' })
+    const moved = authorizeStorageMove(reserved, 'B-91', 'lab manager')
     expect(() => reopenQuality(moved, 'B-91')).toThrow(/depends/)
     expect(moved.history.map(item => item.action)).toEqual(['custody-transferred', 'qc-passed', 'freezer-slot-reserved', 'storage-move-authorized'])
     expect(() => releaseFreezerSlot(moved)).toThrow(/depends/)
+    expect(moved.history.at(-1)?.actor).toBe('lab manager')
   })
   it('reports competing slot reservations and recovers through cancellation before a move', () => {
     const other = reserveFreezerSlot(readSampleLedger(new MemoryStorage()), 'SMP-OTHER')
