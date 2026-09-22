@@ -10,6 +10,7 @@ test('custody and QC evidence govern freezer move and protect quality reversal',
   await page.getByRole('button', { name: 'Record QC pass' }).click()
   await page.goto('/samples/B-91/storage/FRZ-02/move?aliquots=4')
   await page.getByLabel('Decision authority').selectOption('lab manager')
+  await page.getByRole('button', { name: 'Reserve FRZ-02 for B-91' }).click()
   await page.getByRole('button', { name: 'Authorize custody move' }).click()
   await expect(page.getByText('Move authorized')).toBeVisible()
   await page.goto('/samples/SMP-2048/lineage')
