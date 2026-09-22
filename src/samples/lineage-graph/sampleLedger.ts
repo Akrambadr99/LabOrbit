@@ -89,18 +89,19 @@ export function releaseFreezerSlot(state: SampleLedger): SampleLedger {
     storageReviews: state.storageReviews?.map(item => item.status === 'open' ?
       { ...item, status: 'cancelled' as const } : item) }, 'freezer-slot-released', state.freezerReservation.sampleId)
 }
-export function storageMovePolicy(state: SampleLedger, id: string, actor: string): { allowed: boolean; blockers: string[]; queue: 'custody' | 'independent-release' | 'complete' } {
+export function storageMovePolicy(state: SampleLedger, id: string, actor: string, managerId?: string): { allowed: boolean; blockers: string[]; queue: 'custody' | 'independent-release' | 'complete' } {
   const blockers = storageMoveBlockers(state, id)
   if (actor !== 'lab manager') blockers.push('Lab manager authorization is required for the freezer move.')
   if (actor === state.reservationOwner) blockers.push('Reservation owner cannot independently authorize the move.')
   if (state.movedSampleId) blockers.push('A storage move is already authorized.')
-  if (state.storageReviews?.length && !storageReviewInbox(state, actor).some(item =>
+  if (state.storageReviews?.length && !(state.storageReviews ?? []).some(item =>
+    item.status === 'open' && item.assignee === (managerId ?? actor) &&
     item.sampleId === id && item.sourceRevision === state.revision && item.slotId === state.freezerReservation?.slotId))
     blockers.push('A current storage review must be assigned to this manager.')
   return { allowed: blockers.length === 0, blockers, queue: state.movedSampleId ? 'complete' : storageMoveBlockers(state, id).length ? 'custody' : 'independent-release' }
 }
-export function authorizeStorageMove(state: SampleLedger, id: string, actor: string): SampleLedger {
-  const blockers = storageMovePolicy(state, id, actor).blockers
+export function authorizeStorageMove(state: SampleLedger, id: string, actor: string, managerId?: string): SampleLedger {
+  const blockers = storageMovePolicy(state, id, actor, managerId).blockers
   if (blockers.length) throw new Error(blockers.join(' '))
   return withEvent({ ...state, movedSampleId: id, storageReviews: state.storageReviews?.map(item =>
     item.status === 'open' ? { ...item, status: 'completed' as const } : item) }, 'storage-move-authorized', id, actor)
