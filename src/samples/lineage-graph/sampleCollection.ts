@@ -1,4 +1,4 @@
-import type { StoragePort } from '../../workspace/repository'
+import type { StoragePort, StorageReader } from '../../platform/storage-port'
 import { readStored, writeStored } from '../../workspace/storageValidation'
 import { sampleCollectionRule } from './collectionValidation'
 import { initialSampleLedger, passQuality, readSampleLedger, recordCustody, releaseFreezerSlot,
@@ -34,7 +34,7 @@ export function seedSampleCollection(legacy: SampleLedger = initialSampleLedger)
     { id: 'FRZ-11', revision: 1, available: true, sampleIds: ['B-95'] },
   ], audit: [] }
 }
-export function readSampleCollection(storage: StoragePort): SampleCollection {
+export function readSampleCollection(storage: StorageReader): SampleCollection {
   return readStored(storage, key, sampleCollectionRule, () => seedSampleCollection(readSampleLedger(storage)),
     'laborbit:sample:SMP-2048:lineage:v1')
 }

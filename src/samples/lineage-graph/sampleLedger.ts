@@ -1,4 +1,4 @@
-import type { StoragePort } from '../../workspace/repository'
+import type { StoragePort, StorageReader } from '../../platform/storage-port'
 import { custodyEvents, custodyFinding, releaseFindings, sampleNodes } from './custody'
 import type { CustodyEvent, SampleNode } from './custody'
 
@@ -24,7 +24,7 @@ export interface StorageReview {
 }
 const key = 'laborbit:sample:SMP-2048:lineage:v1'
 export const initialSampleLedger: SampleLedger = { nodes: sampleNodes, transfers: custodyEvents, movedSampleId: null, freezerReservation: null, reservationOwner: null, storageReviews: [], revision: 0, history: [] }
-export function readSampleLedger(storage: StoragePort): SampleLedger {
+export function readSampleLedger(storage: StorageReader): SampleLedger {
   const raw = storage.getItem(key)
   if (!raw) return initialSampleLedger
   const value: unknown = JSON.parse(raw)
