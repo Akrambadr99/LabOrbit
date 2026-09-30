@@ -1,3 +1,6 @@
+import { recordDetailPath, recordDecisionPath } from './recordLinks'
+import { Link } from 'react-router-dom'
+import { saveCurrentCollection } from '../../workspace/recordStorage'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { storageManagers } from './storageWorkload'
@@ -12,9 +15,9 @@ export function SampleCollectionPage() {
   const [notice, setNotice] = useState('')
   const selectedId = params.get('sample') ?? 'B-92'; const selected = collection.samples.find(item => item.id === selectedId)
   function choose(id: string) { setParams(current => { const next = new URLSearchParams(current); next.set('sample', id); return next }) }
-  function persist(next: typeof collection, message: string) { setCollection(saveSampleCollection(window.localStorage, next)); setNotice(message) }
+  function persist(next: typeof collection, message: string) { try { setCollection(saveCurrentCollection(window.localStorage, collection, next, readSampleCollection, saveSampleCollection)); setNotice(message); return true } catch (error) { setNotice(error instanceof Error ? error.message : 'Save failed. Your input is preserved.'); return false } }
   function run(action: () => typeof collection, success: string) {
-    try { persist(action(), success) } catch (error) { setNotice(error instanceof Error ? error.message : 'Sample operation failed.') }
+    try { return persist(action(), success) } catch (error) { setNotice(error instanceof Error ? error.message : 'Sample operation failed.'); return false }
   }
   return <main className="suite-page"><header className="suite-title"><div><small>LAB / STORAGE RESPONSIBILITY</small>
     <h1>Sample storage workspace</h1><p>Independent lineage records connected to freezer capacity and named storage review.</p></div></header>
@@ -61,6 +64,7 @@ export function SampleCollectionPage() {
     </>}</section>
     <section className="suite-card" aria-label="Sample audit"><h2>Collection audit</h2><ol>{collection.audit.toReversed().slice(0, 8).map((item, index) =>
       <li key={index}>{item.action} · {item.id} · {item.related.join(', ') || 'none'}</li>)}</ol></section>
+    <nav aria-label="Selected record workflows">{selected && !selected.archived && <><Link to={recordDetailPath(selected)}>Open record details</Link>{' · '}<Link to={recordDecisionPath(selected)}>Open decision workflow</Link></>} <button onClick={() => { try { setCollection(readSampleCollection(window.localStorage)); setNotice('Workspace refreshed; selection preserved.') } catch (error) { setNotice(error instanceof Error ? error.message : 'Refresh failed.') } }}>Refresh workspace</button></nav>
     <p role="status">{notice}</p>
   </main>
 }

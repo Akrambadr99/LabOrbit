@@ -1,1 +1,10 @@
 import{render,screen}from'@testing-library/react';import userEvent from'@testing-library/user-event';import{MemoryRouter,Route,Routes}from'react-router-dom';import{describe,expect,it}from'vitest';import{ExpansionPage}from'./ExpansionPage';describe('Freezer move capacity optimizer UI',()=>{it('restores the scenario from a direct URL',()=>{render(<MemoryRouter initialEntries={["/samples/SMP-2048/storage/FRZ-02/move?aliquots=5"]}><Routes><Route path="/samples/:sampleId/storage/:freezerId/move" element={<ExpansionPage/>}/></Routes></MemoryRouter>);expect(screen.getByRole('heading',{name:"Freezer move capacity optimizer"})).toBeVisible();expect(screen.getByRole('region',{name:'Scenario result'})).toHaveTextContent('Feasible')});it('changes field authority and records an adopted decision',async()=>{const user=userEvent.setup();render(<MemoryRouter initialEntries={["/samples/SMP-2048/storage/FRZ-02/move?aliquots=5"]}><Routes><Route path="/samples/:sampleId/storage/:freezerId/move" element={<ExpansionPage/>}/></Routes></MemoryRouter>);const button=screen.getByRole('button',{name:"Authorize custody move"});expect(button).toBeDisabled();await user.selectOptions(screen.getByLabelText('Decision authority'),"lab manager");expect(button).toBeEnabled();await user.click(button);expect(screen.getByRole('region',{name:'Decision history'})).toHaveTextContent("Authorize custody move")})});
+
+it('keeps explicit record selection distinct from the legacy root-sample route', async () => {
+  const user = userEvent.setup()
+  render(<MemoryRouter initialEntries={['/samples/SMP-2048/storage/FRZ-02/move?aliquots=5&record=B-91']}><Routes>
+    <Route path="/samples/:sampleId/storage/:freezerId/move" element={<ExpansionPage />} /></Routes></MemoryRouter>)
+  await user.selectOptions(screen.getByLabelText('Decision authority'), 'lab manager')
+  expect(screen.getByRole('region', { name: 'Scenario result' })).toHaveTextContent('Sample B-91')
+  expect(screen.getByRole('button', { name: 'Authorize custody move' })).toBeDisabled()
+})
