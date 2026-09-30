@@ -1,4 +1,6 @@
 import type { StoragePort } from '../../workspace/repository'
+import { readStored, writeStored } from '../../workspace/storageValidation'
+import { sampleCollectionRule } from './collectionValidation'
 import { initialSampleLedger, passQuality, readSampleLedger, recordCustody, releaseFreezerSlot,
   requestStorageReview, reserveFreezerSlot } from './sampleLedger'
 import type { SampleLedger } from './sampleLedger'
@@ -33,15 +35,12 @@ export function seedSampleCollection(legacy: SampleLedger = initialSampleLedger)
   ], audit: [] }
 }
 export function readSampleCollection(storage: StoragePort): SampleCollection {
-  const raw = storage.getItem(key)
-  if (!raw) return seedSampleCollection(readSampleLedger(storage))
-  const value: unknown = JSON.parse(raw)
-  if (!value || typeof value !== 'object' || !('samples' in value) || !Array.isArray(value.samples) ||
-    !('freezers' in value) || !Array.isArray(value.freezers) || !('audit' in value) || !Array.isArray(value.audit))
-    throw new Error('Invalid sample collection.')
-  return value as SampleCollection
+  return readStored(storage, key, sampleCollectionRule, () => seedSampleCollection(readSampleLedger(storage)),
+    'laborbit:sample:SMP-2048:lineage:v1')
 }
-export function saveSampleCollection(storage: StoragePort, value: SampleCollection): SampleCollection { storage.setItem(key, JSON.stringify(value)); return value }
+export function saveSampleCollection(storage: StoragePort, value: SampleCollection): SampleCollection {
+  return writeStored(storage, key, sampleCollectionRule, value)
+}
 export function sampleById(value: SampleCollection, id: string): SampleRecord {
   const record = value.samples.find(item => item.id === id)
   if (!record) throw new Error(`Sample ${id} was not found.`)

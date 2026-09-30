@@ -83,7 +83,7 @@ describe('selected sample persistence', () => {
     const storage = new MemoryStorage(), bound = openSelectedRecord(storage)
     const changed = edit(readSampleLedger(bound))
     storage.fail = true
-    expect(() => saveSampleLedger(bound, changed)).toThrow('Storage full')
+    expect(() => saveSampleLedger(bound, changed)).toThrow('Browser storage rejected the save.')
     storage.fail = false
     saveSampleLedger(bound, changed)
     expect(readSampleLedger(openSelectedRecord(storage))).toEqual(changed)
