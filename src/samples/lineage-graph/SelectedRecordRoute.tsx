@@ -1,3 +1,4 @@
+import { collectionBackPath } from '../../workspace/collectionExplorer'
 import type { ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { RecordScope } from '../../workspace/RecordScope'
@@ -8,6 +9,6 @@ export function SelectedRecordRoute({ children }: { children: ReactNode }) {
   const route = useParams()
   const sample = route['sampleId']
   const id = params.get('record') ?? (sample && sample !== 'SMP-2048' ? sample : 'B-91')
-  return <RecordScope id={id} back={'/laboratory/sample-workspace?sample=' + encodeURIComponent(id)}
+  return <RecordScope id={id} back={collectionBackPath('/laboratory/sample-workspace', 'sample', id, params)}
     open={target => openSelectedRecord(window.localStorage, target)}>{children}</RecordScope>
 }
